@@ -1,0 +1,8 @@
+# AppCache requires this exact MIME type, otherwise cache.html shows "Cache error".
+AddType text/cache-manifest .manifest .appcache
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.(manifest|appcache)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>

@@ -1,0 +1,204 @@
+/* ============================================================
+   NeoPussy "Simple mode" overlay.
+   Loaded after neo.css. The original page (and every DOM id the
+   exploit engine needs) stays underneath, fully rendered — this
+   is only an opaque layer on top, so exploit chains that rely on
+   layout/font loading keep working.
+   PS4-browser friendly: no CSS variables, no gap, no grid.
+   ============================================================ */
+
+#simple-ui {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2147483000;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-box-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    background:
+        radial-gradient(circle at 18% 12%, rgba(108, 245, 200, 0.13), transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(255, 122, 107, 0.10), transparent 45%),
+        #070a10;
+    color: #e6edf6;
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: auto;
+}
+
+#simple-ui * { -webkit-box-sizing: border-box; box-sizing: border-box; }
+
+.su-card {
+    width: 620px;
+    max-width: calc(100% - 48px);
+    margin: 32px auto;
+    padding: 34px 40px 28px;
+    text-align: center;
+    background: #101722;
+    border: 1px solid #223046;
+    border-radius: 20px;
+    box-shadow: 0 26px 70px rgba(0, 0, 0, 0.55);
+}
+
+.su-mark {
+    width: 52px;
+    height: 52px;
+    line-height: 52px;
+    margin: 0 auto 14px;
+    border-radius: 14px;
+    background: #6cf5c8;
+    color: #04120d;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+}
+
+.su-kicker {
+    margin: 0 0 8px;
+    color: #6cf5c8;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+}
+
+.su-title {
+    margin: 0 0 10px;
+    font-size: 34px;
+    line-height: 1.18;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+}
+
+.su-fw {
+    margin: 0 0 24px;
+    color: #8ea2bc;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+}
+
+.su-notice {
+    margin: -10px 0 20px;
+    padding: 10px 12px;
+    border: 1px solid #6b4b12;
+    border-radius: 10px;
+    background: rgba(255, 184, 77, 0.08);
+    color: #ffd89b;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.su-notice strong,
+.su-notice code {
+    color: #ffe9c7;
+    font-family: inherit;
+}
+
+.su-go {
+    display: block;
+    width: 100%;
+    min-height: 68px;
+    padding: 0 24px;
+    border: 0;
+    border-radius: 14px;
+    background: #6cf5c8;
+    color: #04120d;
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    cursor: pointer;
+    -webkit-transition: -webkit-transform 120ms ease, opacity 120ms ease;
+    box-shadow: 0 12px 30px rgba(108, 245, 200, 0.24);
+}
+
+.su-go:hover { background: #85ffd6; }
+
+.su-go:active { -webkit-transform: scale(0.985); transform: scale(0.985); }
+
+.su-go:disabled {
+    opacity: 0.55;
+    cursor: default;
+    box-shadow: none;
+}
+
+.su-go-icon {
+    display: inline-block;
+    margin-right: 12px;
+    font-size: 15px;
+    vertical-align: 1px;
+}
+
+.su-status {
+    min-height: 38px;
+    margin: 18px 0 0;
+    color: #d7e3f2;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.su-log {
+    height: 150px;
+    margin: 10px 0 0;
+    padding: 12px 14px;
+    overflow: auto;
+    background: #080d15;
+    border: 1px solid #1d2a3c;
+    border-radius: 10px;
+    color: #9fb3cc;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    text-align: left;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.su-links {
+    margin-top: 18px;
+    color: #5f7189;
+    font-size: 12px;
+}
+
+.su-links a {
+    color: #8ea2bc;
+    text-decoration: none;
+}
+
+.su-links a:hover { color: #6cf5c8; }
+
+.su-links span { margin: 0 8px; }
+
+/* Attribution — kept at the very bottom of the card. */
+#simple-ui .su-credit {
+    margin: 16px 0 0;
+    color: #55677f;
+    font-size: 11px;
+    letter-spacing: 0.03em;
+}
+
+#simple-ui .su-credit a {
+    color: #7c90aa;
+    text-decoration: none;
+}
+
+#simple-ui .su-credit a:hover { color: #6cf5c8; }
+
+/* Short screens (PS4 at 720p, or a small window) */
+@media (max-height: 760px) {
+    .su-card { padding: 22px 34px 18px; margin: 16px auto; }
+    .su-mark { width: 42px; height: 42px; line-height: 42px; font-size: 23px; margin-bottom: 8px; }
+    .su-title { font-size: 28px; }
+    .su-fw { margin-bottom: 14px; }
+    .su-go { min-height: 58px; font-size: 15px; }
+    .su-status { min-height: 28px; margin-top: 12px; font-size: 13px; }
+    .su-log { height: 96px; }
+    .su-links { margin-top: 12px; }
+    #simple-ui .su-credit { margin-top: 10px; font-size: 10px; }
+}

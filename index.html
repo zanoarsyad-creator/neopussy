@@ -1,0 +1,1506 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>NeoPussy — PS4 Exploit Console</title>
+    <meta
+      name="description"
+      content="NeoPussy is an alternative front-end for the WebKitty PS4 exploit host (4.50-5.07 & 6.70-14.02)." />
+    <link
+      rel="icon"
+      href="./includes/assets/icons/favicon.ico"
+      type="image/x-icon" />
+    <link
+      rel="stylesheet"
+      id="main-stylesheet"
+      href="./includes/css/layouts/index.css" />
+    <link
+      rel="stylesheet"
+      id="color-stylesheet"
+      href="./includes/css/colors/default.css" />
+    <link rel="stylesheet" href="./includes/css/neo/neo.css" />
+    <link rel="stylesheet" href="./includes/css/neo/simple.css" />
+    <style id="simple-critical">
+      /* Cover the original WebKitty UI from the very first paint.
+         Inline so it works even before (or without) the external CSS.
+         Layout of the original DOM is untouched — exploit chains still see it. */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #070a10;
+        z-index: 2147482998;
+      }
+      #simple-ui {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 2147482999;
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-box-align: center;
+        -webkit-align-items: center;
+        align-items: center;
+        -webkit-box-pack: center;
+        -webkit-justify-content: center;
+        justify-content: center;
+        background: #070a10;
+        color: #e6edf6;
+        font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+          sans-serif;
+        overflow: auto;
+      }
+    </style>
+    <script>
+      // Keep the original theme loading behaviour, but NeoPussy's own skin always wins.
+      var savedTheme = localStorage.getItem("theme") || "index";
+      var savedColor = localStorage.getItem("color") || "default";
+      if (savedTheme) {
+        document
+          .getElementById("main-stylesheet")
+          .setAttribute(
+            "href",
+            "./includes/css/layouts/" + savedTheme + ".css",
+          );
+      }
+      if (savedColor) {
+        document
+          .getElementById("color-stylesheet")
+          .setAttribute("href", "./includes/css/colors/" + savedColor + ".css");
+      }
+      var rtlLangs = ["ar", "fa"];
+      if (rtlLangs.indexOf(localStorage.getItem("language")) !== -1)
+        document.dir = "rtl";
+      else document.dir = "ltr";
+
+      // PS4 on HTTPS (GitHub Pages): stay on NeoPussy. The upstream script used
+      // to redirect to the upstream host here; build 10 replaces that with
+      // an on-card hint. Real payload delivery still needs plain HTTP on LAN.
+      var isThisPS4 = navigator.userAgent.indexOf("PlayStation 4") !== -1;
+      var isLocalServer =
+        /^(127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(
+          window.location.hostname,
+        );
+      var isCurrentHTTPS = window.location.protocol === "https:";
+      window.neoHttpsDemo = isThisPS4 && !isLocalServer && isCurrentHTTPS;
+      if (window.neoHttpsDemo) {
+        // Prevent any upstream code from re-triggering the old HTTPS prompt.
+        localStorage.setItem("dontHTTPS", "1");
+      }
+    </script>
+  </head>
+
+  <body class="neo-body">
+    <div class="mainContainer">
+      <!-- ================= TOP BAR ================= -->
+      <header class="nx-topbar">
+        <div class="nx-brand">
+          <span class="nx-brand-mark">N</span>
+          <span class="nx-brand-text">NEOPUSSY<em>2.0</em></span>
+          <span class="nx-brand-chip">PS4</span>
+        </div>
+        <nav class="nx-topbar-actions">
+          <button id="updateCache" class="nx-btn nx-btn-ghost">
+            Update Cache
+          </button>
+          <button
+            onclick="settingsPopup()"
+            class="settings-btn nx-icon-btn"
+            title="Settings"
+            aria-label="Settings">
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2 5.5 5.5"></path>
+            </svg>
+          </button>
+          <button
+            onclick="aboutPopup()"
+            class="about-btn nx-icon-btn"
+            title="About"
+            aria-label="About">
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M12 10.5V17M12 7.2v.6"></path>
+            </svg>
+          </button>
+          <button
+            onclick="themePopup()"
+            class="theme-btn nx-icon-btn"
+            title="Appearance"
+            aria-label="Appearance">
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8">
+              <path
+                d="M12 3a9 9 0 1 0 0 18c1 0 1.7-.8 1.7-1.7 0-.6-.3-1.1-.7-1.4-.3-.3-.5-.7-.5-1.2 0-.9.7-1.7 1.7-1.7h1.6A4.7 4.7 0 0 0 20.5 10 6.8 6.8 0 0 0 12 3z"></path>
+              <circle
+                cx="7.6"
+                cy="11.2"
+                r=".9"
+                fill="currentColor"
+                stroke="none"></circle>
+              <circle
+                cx="10.4"
+                cy="7.6"
+                r=".9"
+                fill="currentColor"
+                stroke="none"></circle>
+              <circle
+                cx="14.6"
+                cy="7.9"
+                r=".9"
+                fill="currentColor"
+                stroke="none"></circle>
+            </svg>
+          </button>
+        </nav>
+      </header>
+
+      <!-- ================= HERO / INITIAL SCREEN ================= -->
+      <section id="initial-screen" class="nx-hero">
+        <div class="nx-hero-grid">
+          <div class="nx-hero-copy">
+            <p class="nx-eyebrow">
+              <span class="nx-dot"></span> PlayStation 4 · Exploit Host
+            </p>
+            <h1 class="nx-title">Neo<span>PUSSY</span></h1>
+            <p class="nx-lede">
+              A different face for the same toolkit. Pick a HEN flavour, launch
+              the chain, then send payloads from the library &mdash; all from
+              one console.
+            </p>
+
+            <p id="PS4FW" class="nx-fw-line">-</p>
+
+            <a
+              class="hidden secondHostBtn nx-ghost-link"
+              href="#"
+              onclick="return false;"
+              style="text-decoration: none">
+              Load payloads using a PayLoader - External link
+            </a>
+
+            <div id="choosejb-initial" class="nx-card nx-hen-card">
+              <h3 class="nx-card-title">Choose your HEN flavor</h3>
+              <div class="nx-seg">
+                <label id="goldhen-label-initial" class="nx-seg-item">
+                  <input
+                    type="radio"
+                    name="hen"
+                    value="GoldHEN"
+                    onchange="saveJbFlavor(this.name, this.value)" />
+                  <span>GoldHEN</span>
+                </label>
+                <label id="PS4HEN-label-initial" class="nx-seg-item">
+                  <input
+                    type="radio"
+                    name="hen"
+                    value="PS4HEN"
+                    onchange="saveJbFlavor(this.name, this.value)" />
+                  <span>PS4HEN</span>
+                </label>
+                <label id="nexHEN-label-initial" class="nx-seg-item hidden">
+                  <input
+                    type="radio"
+                    name="hen"
+                    value="nexHEN"
+                    onchange="saveJbFlavor(this.name, this.value)" />
+                  <span>nexHEN <em>experimental</em></span>
+                </label>
+              </div>
+            </div>
+
+            <button id="stopAutoJb" class="hidden nx-btn nx-btn-danger">
+              Stop Auto Jailbreak
+            </button>
+            <a
+              href="./index.html"
+              class="nx-preview-link"
+              style="text-decoration: none"
+              >Simple mode &middot; 1 klik &rarr;</a
+            >
+            <button id="nx-preview" type="button" class="nx-preview-link">
+              Preview dashboard &rarr;
+            </button>
+          </div>
+
+          <div class="nx-hero-action">
+            <button
+              id="ps-logo-container"
+              class="nx-power"
+              aria-label="Start jailbreak">
+              <span class="nx-power-ring"></span>
+              <svg
+                viewBox="0 0 24 24"
+                width="54"
+                height="54"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round">
+                <path d="M12 3.2v8.4"></path>
+                <path d="M6.4 6.6a7.6 7.6 0 1 0 11.2 0"></path>
+              </svg>
+              <span class="nx-power-label">START</span>
+            </button>
+            <p id="click-to-start-text" class="nx-start-hint"></p>
+            <p class="nx-micro">
+              Works best on the PS4 browser. Desktop users: use the preview
+              link.
+            </p>
+          </div>
+        </div>
+
+        <button
+          id="scrollDown"
+          class="nx-scroll"
+          aria-label="Go to dashboard"
+          onclick="
+            document
+              .getElementById('exploit-main-screen')
+              .scrollIntoView({ block: 'start' })
+          ">
+          <span></span>
+        </button>
+      </section>
+
+      <!-- ================= DASHBOARD / EXPLOIT SCREEN ================= -->
+      <section id="exploit-main-screen" class="nx-dash">
+        <div id="exploitContainer" class="nx-dash-grid">
+          <!-- Status / console -->
+          <div id="exploit-status-panel" class="nx-panel nx-panel-status">
+            <div class="nx-panel-head">
+              <div>
+                <p class="nx-kicker">Live session</p>
+                <h2 id="state">Exploit status</h2>
+              </div>
+              <button id="successRate" class="nx-rate" title="Reset statistics">
+                Success rate
+              </button>
+            </div>
+
+            <div id="DebugConsole" class="nx-console" dir="ltr">
+              <pre id="console"><center>--</center></pre>
+            </div>
+
+            <div class="nx-status-foot">
+              <div id="henSelection" class="nx-seg nx-seg-small">
+                <label id="goldhen-label-exploit" class="nx-seg-item">
+                  <input
+                    type="radio"
+                    name="hen2"
+                    value="GoldHEN"
+                    onchange="saveJbFlavor(this.name, this.value)" />
+                  <span>GoldHEN</span>
+                </label>
+                <label id="PS4HEN-label-exploit" class="nx-seg-item">
+                  <input
+                    type="radio"
+                    name="hen2"
+                    value="PS4HEN"
+                    onchange="saveJbFlavor(this.name, this.value)" />
+                  <span>PS4HEN</span>
+                </label>
+                <label id="nexHEN-label-exploit" class="nx-seg-item hidden">
+                  <input
+                    type="radio"
+                    name="hen2"
+                    value="nexHEN"
+                    onchange="saveJbFlavor(this.name, this.value)" />
+                  <span>nexHEN</span>
+                </label>
+              </div>
+              <button id="exploitRun" class="nx-run" aria-label="Run exploit">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="22"
+                  height="22"
+                  fill="currentColor">
+                  <path d="M8 5.2 19 12 8 18.8z"></path>
+                </svg>
+                Run
+              </button>
+            </div>
+          </div>
+
+          <!-- Payloads -->
+          <div id="payloadsSection" class="nx-panel nx-panel-payloads">
+            <div class="nx-panel-head nx-panel-head-wrap">
+              <div>
+                <p class="nx-kicker">Library</p>
+                <h2 id="payloads-section-title">Payloads</h2>
+              </div>
+              <div class="nx-panel-tools">
+                <div id="header2" class="hidden nx-header2">
+                  <button
+                    onclick="settingsPopup()"
+                    class="settings-btn nx-icon-btn"
+                    title="Settings">
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="18"
+                      height="18"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8">
+                      <circle cx="12" cy="12" r="3"></circle>
+                      <path
+                        d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2 5.5 5.5"></path>
+                    </svg>
+                  </button>
+                  <button
+                    onclick="aboutPopup()"
+                    class="about-btn nx-icon-btn"
+                    title="About">
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="18"
+                      height="18"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8">
+                      <circle cx="12" cy="12" r="9"></circle>
+                      <path d="M12 10.5V17M12 7.2v.6"></path>
+                    </svg>
+                  </button>
+                  <button
+                    onclick="themePopup()"
+                    class="theme-btn nx-icon-btn"
+                    title="Appearance">
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="18"
+                      height="18"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8">
+                      <path
+                        d="M12 3a9 9 0 1 0 0 18c1 0 1.7-.8 1.7-1.7 0-.6-.3-1.1-.7-1.4-.3-.3-.5-.7-.5-1.2 0-.9.7-1.7 1.7-1.7h1.6A4.7 4.7 0 0 0 20.5 10 6.8 6.8 0 0 0 12 3z"></path>
+                    </svg>
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  id="ps4IpInput"
+                  class="hidden nx-input"
+                  placeholder="PS4 IP Address" />
+                <select id="ps4FwSelect" class="hidden nx-select">
+                  <option selected hidden>PS4 FW</option>
+                  <option value="4.50">4.50</option>
+                  <option value="4.55">4.55</option>
+                  <option value="4.70">4.70</option>
+                  <option value="4.71">4.71</option>
+                  <option value="4.72">4.72</option>
+                  <option value="4.73">4.73</option>
+                  <option value="4.74">4.74</option>
+                  <option value="5.00">5.00</option>
+                  <option value="5.01">5.01</option>
+                  <option value="5.03">5.03</option>
+                  <option value="5.05">5.05</option>
+                  <option value="5.07">5.07</option>
+                  <option value="5.50">5.50</option>
+                  <option value="5.53">5.53</option>
+                  <option value="5.55">5.55</option>
+                  <option value="5.56">5.56</option>
+                  <option value="6.00">6.00</option>
+                  <option value="6.02">6.02</option>
+                  <option value="6.20">6.20</option>
+                  <option value="6.50">6.50</option>
+                  <option value="6.51">6.51</option>
+                  <option value="6.70">6.70</option>
+                  <option value="6.71">6.71</option>
+                  <option value="6.72">6.72</option>
+                  <option value="7.00">7.00</option>
+                  <option value="7.01">7.01</option>
+                  <option value="7.02">7.02</option>
+                  <option value="7.50">7.50</option>
+                  <option value="7.51">7.51</option>
+                  <option value="7.55">7.55</option>
+                  <option value="8.00">8.00</option>
+                  <option value="8.01">8.01</option>
+                  <option value="8.03">8.03</option>
+                  <option value="8.50">8.50</option>
+                  <option value="8.52">8.52</option>
+                  <option value="9.00">9.00</option>
+                  <option value="9.03">9.03</option>
+                  <option value="9.04">9.04</option>
+                  <option value="9.50">9.50</option>
+                  <option value="9.51">9.51</option>
+                  <option value="9.60">9.60</option>
+                  <option value="10.00">10.00</option>
+                  <option value="10.01">10.01</option>
+                  <option value="10.50">10.50</option>
+                  <option value="10.70">10.70</option>
+                  <option value="10.71">10.71</option>
+                  <option value="11.00">11.00</option>
+                  <option value="11.02">11.02</option>
+                  <option value="11.50">11.50</option>
+                  <option value="11.52">11.52</option>
+                  <option value="12.00">12.00</option>
+                  <option value="12.02">12.02</option>
+                  <option value="12.50">12.50</option>
+                  <option value="12.52">12.52</option>
+                  <option value="13.00">13.00</option>
+                  <option value="13.02">13.02</option>
+                  <option value="13.04">13.04</option>
+                  <option value="13.50">13.50</option>
+                  <option value="13.52">13.52</option>
+                  <option value="14.00">14.00</option>
+                  <option value="14.02">14.02</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="nx-tabs">
+              <ul id="default-tab" role="tablist">
+                <li role="presentation">
+                  <button
+                    id="tools-tab"
+                    data-tabs-target="#tools"
+                    type="button"
+                    role="tab"
+                    aria-selected="false">
+                    Tools
+                  </button>
+                </li>
+                <li role="presentation">
+                  <button
+                    id="homebrew-tab"
+                    data-tabs-target="#homebrew"
+                    type="button"
+                    role="tab"
+                    aria-selected="false">
+                    Homebrew
+                  </button>
+                </li>
+                <li role="presentation">
+                  <button
+                    id="linux-tab"
+                    data-tabs-target="#linux"
+                    type="button"
+                    role="tab"
+                    aria-selected="false">
+                    Linux
+                  </button>
+                </li>
+                <li id="advancedPayloadsTab" class="hidden" role="presentation">
+                  <button
+                    id="advanced-tab"
+                    data-tabs-target="#advanced"
+                    type="button"
+                    role="tab"
+                    aria-selected="false">
+                    Advanced
+                  </button>
+                </li>
+                <li id="customPayloadsTab" class="hidden" role="presentation">
+                  <button
+                    id="custom-tab"
+                    data-tabs-target="#custom"
+                    type="button"
+                    role="tab"
+                    aria-selected="false">
+                    Custom
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            <div id="payloadsGrid" class="nx-payloads">
+              <div id="default-tab-content">
+                <div id="tools" class="hidden nx-grid" role="tabpanel"></div>
+                <div id="homebrew" class="hidden nx-grid" role="tabpanel"></div>
+                <div id="linux" class="hidden nx-grid" role="tabpanel"></div>
+                <div id="advanced" class="hidden nx-grid" role="tabpanel"></div>
+                <div id="custom" class="hidden nx-custom" role="tabpanel">
+                  <p id="customPayloadUpload" class="nx-custom-title">
+                    Upload a custom payload file
+                  </p>
+                  <div class="nx-custom-row">
+                    <input
+                      type="file"
+                      id="customPayloadInput"
+                      accept=".bin,.elf"
+                      class="nx-file" />
+                    <button
+                      id="sendCustomPayloadBtn"
+                      onclick="Loadpayloads('custom')"
+                      class="nx-run nx-run-small">
+                      <svg
+                        viewBox="0 0 24 24"
+                        width="18"
+                        height="18"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M4 12h14M13 6l6 6-6 6"></path>
+                      </svg>
+                      Send
+                    </button>
+                  </div>
+                  <p class="nx-micro">
+                    Accepted: .bin / .elf &mdash; sent to the console's payload
+                    loader.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <a
+              class="secondHostBtn hidden nx-ghost-link"
+              href="#"
+              onclick="return false;"
+              style="text-decoration: none">
+              Load payloads using a payload loader - External link
+            </a>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= ABOUT ================= -->
+    <div class="fixed inset-0 hidden nx-overlay" id="about-popup-overlay">
+      <div id="about-popup" class="nx-modal">
+        <div class="nx-modal-head">
+          <p class="nx-kicker">Information</p>
+          <h2>About</h2>
+        </div>
+        <div class="nx-modal-body">
+          <p class="nx-about-version">Version: 2.0</p>
+          <p>A feature rich exploit host to jailbreak your PS4.</p>
+          <p>Hosted on GitHub.</p>
+
+          <div id="PS4FWOK" class="nx-fw-block">
+            <h3>Supported PS4 firmware</h3>
+            <div id="listfw" class="nx-fw-grid">
+              <p id="fw450-507">4.50-5.07</p>
+              <p id="fw67">6.7x</p>
+              <p id="fw7">7.xx</p>
+              <p id="fw8">8.xx</p>
+              <p id="fw9">9.xx</p>
+              <p id="fw10">10.xx</p>
+              <p id="fw11">11.xx</p>
+              <p id="fw12">12.xx</p>
+              <p id="fw13">13.xx</p>
+              <p id="fw140x">14.0x</p>
+            </div>
+          </div>
+
+          <small id="payloaderFirmwareSemiSupported">
+            <i
+              >* Loading payloads through a Payload Loader server is
+              supported.</i
+            >
+          </small>
+
+          <h3 id="creditsHeader" class="nx-subhead">Credits</h3>
+          <div class="nx-credits">
+            <span>abc</span><span>sleirsgoevy</span><span>TheFlow</span
+            ><span>Flatz</span> <span>Al Azif</span><span>Nathan Fargo</span
+            ><span>ufm42</span><span>Egycnq</span> <span>Fire30</span
+            ><span>Jordy</span><span>Sonic-Iso</span><span>Feyzee61</span>
+            <span>Raw Game</span><span>m0zz</span><span>ArabPixel</span
+            ><span>Dr.Yenyen</span> <span>Teligin174</span
+            ><span>Payloads' devs</span>
+          </div>
+        </div>
+        <button
+          onclick="aboutPopup()"
+          class="nx-btn nx-btn-primary"
+          id="close-about">
+          Close
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= SETTINGS ================= -->
+    <div class="fixed inset-0 hidden nx-overlay" id="settings-popup-overlay">
+      <div id="settings-popup" class="nx-modal">
+        <div class="nx-modal-head">
+          <p class="nx-kicker">Configuration</p>
+          <h2>WebKitty settings</h2>
+        </div>
+
+        <div class="nx-modal-body">
+          <div id="chooseGoldHEN" class="nx-field">
+            <h3 id="ghVer" class="nx-subhead">GoldHEN Versions</h3>
+            <label class="nx-radio-line">
+              <input
+                type="radio"
+                name="goldhen"
+                value="GHv2.4b18.14"
+                onchange="setGoldHENVer(this.value)" />
+              <span
+                >GoldHEN v2.4b18.14 —
+                <pre id="latestVer">Latest</pre>
+              </span>
+            </label>
+            <details class="nx-details">
+              <summary>Other versions</summary>
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="goldhen"
+                  value="GHv2.4b18.13"
+                  onchange="setGoldHENVer(this.value)" /><span
+                  >GoldHEN v2.4b18.13</span
+                ></label
+              >
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="goldhen"
+                  value="GHv2.4b18.12"
+                  onchange="setGoldHENVer(this.value)" /><span
+                  >GoldHEN v2.4b18.12</span
+                ></label
+              >
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="goldhen"
+                  value="GHv2.4b18.10"
+                  onchange="setGoldHENVer(this.value)" /><span
+                  >GoldHEN v2.4b18.10</span
+                ></label
+              >
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="goldhen"
+                  value="GHv2.4b18.9"
+                  onchange="setGoldHENVer(this.value)" /><span
+                  >GoldHEN v2.4b18.9</span
+                ></label
+              >
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="goldhen"
+                  value="GHv2.4b18.8"
+                  onchange="setGoldHENVer(this.value)" /><span
+                  >GoldHEN v2.4b18.8</span
+                ></label
+              >
+            </details>
+          </div>
+
+          <div id="chooseExploitChain" class="nx-field">
+            <h3 id="exploitChainTitle" class="nx-subhead">Exploit Chain</h3>
+            <div class="nx-chain-grid">
+              <label id="modularLapseExp" class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="exploitChain"
+                  value="0"
+                  onchange="exploitChain(this.value)" />
+                <p id="modularLapse">PSFree Lapse Modular</p></label
+              >
+              <label id="bundleLapseExp" class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="exploitChain"
+                  value="1"
+                  onchange="exploitChain(this.value)" />
+                <p id="bundleLapse">PSFree Lapse Bundle</p></label
+              >
+              <label id="badHoistExp" class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="exploitChain"
+                  value="2"
+                  onchange="exploitChain(this.value)" />
+                <p id="badHoist">BadHoist</p></label
+              >
+              <label id="cssFontFaceNetCtrlExp" class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="exploitChain"
+                  value="3"
+                  onchange="exploitChain(this.value)" />
+                <p id="cssFontFaceNetCtrl">CSSFontFace Netctrl</p></label
+              >
+              <label id="cssFontFaceLapseExp" class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="exploitChain"
+                  value="4"
+                  onchange="exploitChain(this.value)" />
+                <p id="cssFontFaceLapse">CSSFontFace Lapse</p></label
+              >
+              <label id="slopKitLapseExp" class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="exploitChain"
+                  value="5"
+                  onchange="exploitChain(this.value)" />
+                <p id="slopKitLapse">Slopkit Lapse</p></label
+              >
+              <label id="slopKitNetCtrlExp" class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="exploitChain"
+                  value="6"
+                  onchange="exploitChain(this.value)" />
+                <p id="slopKitNetCtrl">Slopkit Netctrl</p></label
+              >
+              <label id="relapseExp" class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="exploitChain"
+                  value="7"
+                  onchange="exploitChain(this.value)" />
+                <p id="relapse">Slopkit Relapse</p></label
+              >
+              <label id="bpfDoubleFreeExp" class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="exploitChain"
+                  value="8"
+                  onchange="exploitChain(this.value)" />
+                <p id="bpfDoubleFree">Bpf Double Free</p></label
+              >
+              <label id="slopkitAfterglowExp" class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="exploitChain"
+                  value="9"
+                  onchange="exploitChain(this.value)" />
+                <p id="slopkitAfterglow">Slopkit Afterglow</p></label
+              >
+              <label id="wobkotLapseExp" class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="exploitChain"
+                  value="10"
+                  onchange="exploitChain(this.value)" />
+                <p id="wobkotLapse">Wobkot lapse</p></label
+              >
+            </div>
+          </div>
+
+          <div id="advancedPayloads" class="nx-field">
+            <h3 id="optionsHeader" class="nx-subhead">Options</h3>
+            <label class="nx-radio-line"
+              ><input
+                type="checkbox"
+                id="advancedPayloadsInput"
+                onclick="setAdvancedPayloads(this.checked)" /><span
+                id="showAdvancedPayloads"
+                >Show Advanced Payloads</span
+              ></label
+            >
+            <label id="autoJbOption" class="nx-radio-line"
+              ><input
+                type="checkbox"
+                id="autoJb"
+                onclick="setAutoJb(this.checked)" /><span id="autoJbText"
+                >Auto Jailbreak</span
+              ></label
+            >
+            <label id="autoJbContainer" class="nx-radio-line"
+              ><input
+                type="checkbox"
+                id="autoJbRetry"
+                onclick="setAutoJbRetry(this.checked)" /><span
+                id="autoJbRetryText"
+                >Auto-Retry Jailbreak</span
+              ></label
+            >
+            <label id="reloadAfterJb" class="nx-radio-line"
+              ><input
+                type="checkbox"
+                id="reloadAfterJbInput"
+                onclick="setReloadAfterJb(this.checked)" /><span
+                id="reloadAfterJbText"
+                >Reload After a successful Jailbreak</span
+              ></label
+            >
+            <label id="bareboneJBOption" class="nx-radio-line"
+              ><input
+                type="checkbox"
+                id="bareboneJBInput"
+                onclick="setBareboneJB(this.checked)" /><span id="bareboneJB"
+                >Barebone Jailbreak Experience</span
+              ></label
+            >
+          </div>
+        </div>
+
+        <div class="nx-modal-actions">
+          <button
+            onclick="ipGuess()"
+            class="hidden nx-btn nx-btn-ghost"
+            id="scanPayLoader">
+            Scan for payload loader server
+          </button>
+          <button
+            onclick="shutdownServer()"
+            class="hidden nx-btn nx-btn-danger"
+            id="shutdownServerBtn">
+            Shutdown Server
+          </button>
+          <button
+            onclick="settingsPopup()"
+            class="nx-btn nx-btn-primary"
+            id="close-settings">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= APPEARANCE ================= -->
+    <div class="fixed inset-0 hidden nx-overlay" id="theme-popup-overlay">
+      <div id="theme-popup" class="nx-modal">
+        <div class="nx-modal-head">
+          <p class="nx-kicker">Personalise</p>
+          <h2>Customization Settings</h2>
+        </div>
+
+        <div class="nx-modal-body">
+          <div id="chooselang" class="nx-field">
+            <h3 class="nx-subhead">Language</h3>
+            <div class="nx-choice-grid">
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="language"
+                  value="en"
+                  onchange="saveLanguage(this.value)" /><span
+                  >English</span
+                ></label
+              >
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="language"
+                  value="fa"
+                  onchange="saveLanguage(this.value)" /><span
+                  >فارسی</span
+                ></label
+              >
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="language"
+                  value="ar"
+                  onchange="saveLanguage(this.value)" /><span
+                  >العربية</span
+                ></label
+              >
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="language"
+                  value="ru"
+                  onchange="saveLanguage(this.value)" /><span
+                  >Русский</span
+                ></label
+              >
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="language"
+                  value="es"
+                  onchange="saveLanguage(this.value)" /><span
+                  >Español</span
+                ></label
+              >
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="language"
+                  value="tr"
+                  onchange="saveLanguage(this.value)" /><span
+                  >Türkçe</span
+                ></label
+              >
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="language"
+                  value="de"
+                  onchange="saveLanguage(this.value)" /><span
+                  >Deutsch</span
+                ></label
+              >
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="language"
+                  value="zh-cn"
+                  onchange="saveLanguage(this.value)" /><span
+                  >简体中文</span
+                ></label
+              >
+            </div>
+          </div>
+
+          <div id="chooseTheme" class="nx-field">
+            <h3 id="layout" class="nx-subhead">Layout</h3>
+            <div class="nx-choice-grid" id="layouts">
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="theme"
+                  value="index"
+                  onchange="setLayout(this.value)" /><span id="defaultTheme"
+                  >Default</span
+                ></label
+              >
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="theme"
+                  value="compact"
+                  onchange="setLayout(this.value)" /><span id="compactTheme"
+                  >Compact</span
+                ></label
+              >
+            </div>
+
+            <h3 id="themeWord" class="nx-subhead">Theme</h3>
+            <div class="nx-choice-grid" id="colors">
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="colorTheme"
+                  value="default"
+                  onchange="setTheme(this.value)" /><span id="defaultColor"
+                  >Default</span
+                ></label
+              >
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="colorTheme"
+                  value="vibrant"
+                  onchange="setTheme(this.value)" /><span id="vibrantColor"
+                  >Vibrant</span
+                ></label
+              >
+              <label class="nx-radio-line"
+                ><input
+                  type="radio"
+                  name="colorTheme"
+                  value="catppuccino"
+                  onchange="setTheme(this.value)" /><span id="catppuccinoColor"
+                  >Catppuccino</span
+                ></label
+              >
+            </div>
+          </div>
+        </div>
+
+        <button
+          onclick="themePopup()"
+          class="nx-btn nx-btn-primary"
+          id="close-theme">
+          Close
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= FAN THRESHOLD ================= -->
+    <div
+      class="fixed inset-0 hidden nx-overlay"
+      id="choose-fanThreshold-overlay">
+      <div id="choose-fanThreshold" class="nx-modal nx-modal-small">
+        <div class="nx-modal-head">
+          <p class="nx-kicker">Thermals</p>
+          <h2>Fan Threshold</h2>
+        </div>
+        <div class="nx-modal-body">
+          <p>
+            Sets the temperature threshold where the fan will kick into turbo.
+          </p>
+          <h3 class="nx-subhead">Select a temperature</h3>
+          <div class="nx-temp-row">
+            <button
+              class="nx-btn nx-btn-ghost"
+              id="60"
+              onclick="loadFanThreshold(this.id)">
+              60°C
+            </button>
+            <button
+              class="nx-btn nx-btn-ghost"
+              id="70"
+              onclick="loadFanThreshold(this.id)">
+              70°C
+            </button>
+            <button
+              class="nx-btn nx-btn-ghost"
+              id="80"
+              onclick="loadFanThreshold(this.id)">
+              80°C
+            </button>
+            <button
+              class="nx-btn nx-btn-ghost"
+              id="85"
+              onclick="loadFanThreshold(this.id)">
+              85°C
+            </button>
+          </div>
+          <div id="defaultTempDiv" class="nx-temp-default">
+            <small>&uarr;</small>
+            <small id="defaultTemp">Default</small>
+          </div>
+        </div>
+        <button
+          onclick="chooseFanThreshold()"
+          class="nx-btn nx-btn-primary"
+          id="close-fanChoose">
+          Close
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= FUNCTIONAL SCRIPTS (same engine as the original) ================= -->
+    <script>
+      function reportGlobalError(title, details) {
+        var errorConsole = document.getElementById("console");
+        if (!errorConsole) return;
+        if (errorConsole.textContent.trim() === "--")
+          errorConsole.textContent = "";
+        var entry = document.createElement("span");
+        entry.style.color = "#ff7a6b";
+        entry.style.whiteSpace = "pre-wrap";
+        entry.textContent = title + "\n" + details + "\n\n";
+        errorConsole.appendChild(entry);
+        var consolePanel = document.getElementById("DebugConsole");
+        if (consolePanel) consolePanel.scrollTop = consolePanel.scrollHeight;
+      }
+
+      window.onerror = function (msg, url, lineno, colno, error) {
+        var stack = error && error.stack ? error.stack : "No stack trace";
+        var details =
+          "URL: " +
+          url +
+          "\nLine: " +
+          lineno +
+          ", Col: " +
+          colno +
+          "\n\n" +
+          stack;
+        console.error("[onerror]", msg, url, lineno, colno, stack);
+        reportGlobalError("Error: " + msg, details);
+        return true;
+      };
+
+      window.addEventListener("unhandledrejection", function (event) {
+        var reason = event.reason;
+        var msg =
+          reason instanceof Error ?
+            reason.message + "\n\nStack:\n" + reason.stack
+          : String(reason);
+        console.error("[unhandledrejection]", reason);
+        reportGlobalError("Unhandled Promise Rejection:", msg);
+      });
+
+      var ua = navigator.userAgent;
+      var isPS4 = ua.indexOf("PlayStation 4") !== -1;
+      var is67x =
+        ua.indexOf(" 6.70") !== -1 ||
+        ua.indexOf(" 6.71") !== -1 ||
+        ua.indexOf(" 6.72") !== -1;
+      window.entrypoint672_result = 0;
+      window.exploitsetup672_result = 0;
+
+      var jailbreakNow = sessionStorage.getItem("jailbreakNow") != null;
+      if (isPS4 && is67x && jailbreakNow) {
+        try {
+          var xhr = new XMLHttpRequest();
+          xhr.open("GET", "./src/badhoist/672entrypoint.js", false);
+          xhr.send("");
+          if (xhr.status === 200) {
+            eval.call(top.window, xhr.responseText);
+          }
+        } catch (e) {
+          console.error("Early entrypoint hook failed: " + e.message);
+        }
+      }
+    </script>
+    <script src="./includes/js/storage.js"></script>
+    <script src="./includes/js/testMode.js"></script>
+    <script src="./includes/js/firmware.js"></script>
+    <script src="./includes/js/utilities.js"></script>
+    <script src="./includes/js/HENs.js"></script>
+    <script src="./includes/js/checkFw.js"></script>
+    <script id="main-logic-loader">
+      (function () {
+        var isModern = "noModule" in document.createElement("script");
+        var scriptPath =
+          isModern ?
+            "./includes/js/jailbreak.js"
+          : "./includes/js/jailbreak-legacy.js";
+        document.write('<script src="' + scriptPath + '"><\/script>');
+      })();
+    </script>
+    <script src="./includes/js/initial.js"></script>
+    <script src="./includes/js/cache.js"></script>
+    <script src="./includes/js/deliverPayload.js"></script>
+    <script src="./includes/js/payloadsList.js"></script>
+    <script src="./includes/js/design.js"></script>
+    <script src="./includes/js/language.js"></script>
+    <script src="./includes/js/autoJbRetry.js"></script>
+    <script src="./includes/js/events.js"></script>
+    <script src="./includes/js/payloadsHandler.js"></script>
+    <script>
+      // Simple mode picks the right HEN automatically: GoldHEN on supported
+      // firmwares, PS4HEN on 4.xx / >14.02 where GoldHEN is unavailable.
+      (function () {
+        try {
+          var fw =
+            typeof getPs4FwVersion === "function" ?
+              parseFloat(getPs4FwVersion())
+            : NaN;
+          var flavor =
+            !isNaN(fw) && (fw < 5.05 || fw > 14.02) ? "PS4HEN" : "GoldHEN";
+          if (typeof storage !== "undefined") {
+            storage.set("jailbreakFlavor", flavor);
+            if (typeof GOLDHEN_DEFAULT !== "undefined")
+              storage.set("GHVer", GOLDHEN_DEFAULT);
+          }
+          if (typeof user !== "undefined") user.currentJbFlavor = flavor;
+          if (flavor === "PS4HEN" && typeof PS4HEN === "function") PS4HEN();
+          else if (typeof GoldHEN === "function") GoldHEN();
+          var radios = document.querySelectorAll(
+            'input[name="hen"], input[name="hen2"]',
+          );
+          for (var i = 0; i < radios.length; i++) {
+            radios[i].checked = radios[i].value === flavor;
+          }
+          window.simpleHenFlavor = flavor;
+        } catch (e) {
+          console.warn("simple mode preset: " + e.message);
+        }
+      })();
+
+    </script>
+    <script>
+      // The original language/cache helpers reset document.title to "WebKitty".
+      // Keep the requested brand in the tab title instead.
+      (function () {
+        var brandTitle = "NeoPussy — PS4 Exploit Console";
+        function keepTitle() {
+          document.title = brandTitle;
+        }
+        ["applyLanguage", "terminateCache"].forEach(function (name) {
+          var original = window[name];
+          if (typeof original === "function") {
+            window[name] = function () {
+              var result = original.apply(this, arguments);
+              keepTitle();
+              return result;
+            };
+          }
+        });
+        document.addEventListener("DOMContentLoaded", keepTitle);
+        keepTitle();
+      })();
+    </script>
+    <script>
+      // One-time migration: build 8 restores the upstream chain picker.
+      // Older builds forced CSSFontFace (4) on FW 11.00/11.02 and left that value
+      // in localStorage, so checkFw.js kept using it instead of the default chain.
+      function restoreUpstreamChain() {
+        try {
+          var KEY = "neopussy-chain-reset-8";
+          if (localStorage.getItem(KEY)) return;
+          localStorage.setItem(KEY, "1");
+          var fw =
+            typeof getPs4FwVersion === "function"
+              ? parseFloat(getPs4FwVersion())
+              : NaN;
+          if (isNaN(fw) || fw < 11 || fw > 11.02) return;
+          var def = typeof getDefaultChain === "function" ? getDefaultChain(fw) : null;
+          var stored = storage.getNumber ? storage.getNumber("exploitChain", null) : null;
+          if (def === null || stored === def) return;
+          storage.set("exploitChain", def);
+          if (typeof user !== "undefined") user.exploitChain = def;
+          if (typeof loadExploitChain === "function") loadExploitChain();
+        } catch (e) {}
+      }
+
+      // Run before the engine's DOMContentLoaded handler so auto-JB cannot start
+      // with the stale chain first.
+      restoreUpstreamChain();
+
+      document.addEventListener("DOMContentLoaded", function () {
+        if (window.neoHttpsDemo) {
+          var notice = document.getElementById("su-https-notice");
+          if (notice) notice.classList.remove("hidden");
+        }
+        if (window.abortLoading) return;
+        if (typeof loadSettings === "function") loadSettings();
+      });
+
+      // Desktop-only preview helper (harmless on PS4)
+      (function () {
+        var btn = document.getElementById("nx-preview");
+        if (!btn) return;
+        btn.addEventListener("click", function () {
+          var dash = document.getElementById("exploit-main-screen");
+          if (dash && dash.scrollIntoView)
+            dash.scrollIntoView({ block: "start" });
+          else if (dash) window.scrollTo(0, dash.offsetTop);
+          if (typeof switchTab === "function") switchTab("tools");
+        });
+      })();
+    </script>
+
+    <!-- ================= SIMPLE MODE OVERLAY ================= -->
+    <div id="simple-ui" role="main">
+      <div class="su-card">
+        <div class="su-mark">N</div>
+        <p class="su-kicker">
+          NeoPussy &middot; Mode Simpel &middot;
+          <span id="su-build">build 10</span>
+        </p>
+        <h1 class="su-title">Satu tombol.<br />Langsung jadi.</h1>
+        <p id="su-fw" class="su-fw">Mendeteksi firmware...</p>
+
+        <p id="su-https-notice" class="su-notice hidden">
+          Mode demo HTTPS. Untuk menjalankan payload, buka
+          <strong>http://&lt;IP-PC&gt;:8099/</strong> di browser PS4 dan jalankan
+          <code>python serve.py</code> di PC.
+        </p>
+
+        <button id="su-go" type="button" class="su-go">
+          <span class="su-go-icon">&#9654;</span>
+          <span>JAILBREAK + GOLDHEN</span>
+        </button>
+
+        <p id="su-status" class="su-status">
+          Siap. Tekan tombol lalu biarkan browser PS4 tetap terbuka.
+        </p>
+        <pre id="su-log" class="su-log" dir="ltr"></pre>
+
+        <p class="su-credit">
+          Credit:
+          <strong>ArabPixel</strong> &amp; WebKitty contributors
+        </p>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var btn = document.getElementById("su-go");
+        var status = document.getElementById("su-status");
+        var logBox = document.getElementById("su-log");
+        var fwBox = document.getElementById("su-fw");
+        var started = false;
+        var refreshTimer = null;
+        var closeScheduled = false;
+
+        function statusText(text) {
+          if (status) status.textContent = text;
+        }
+
+        function currentFlavor() {
+          return typeof user !== "undefined" && user.currentJbFlavor ?
+              user.currentJbFlavor
+            : window.simpleHenFlavor || "GoldHEN";
+        }
+
+        // GoldHEN is up — close the PS4 browser automatically. Several PS4
+        // firmware builds reject a plain window.close(), so try a few variants.
+        // Use ?noautoclose=1 to keep the page open for diagnostics.
+        function scheduleAutoClose() {
+          if (closeScheduled) return;
+          closeScheduled = true;
+
+          var isPs4 =
+            typeof isPS4Console === "function" ? isPS4Console() : false;
+          var disabled = false;
+          try {
+            disabled =
+              new URLSearchParams(location.search).get("noautoclose") === "1";
+          } catch (e) {}
+          if (!isPs4 || disabled) {
+            statusText(
+              "Selesai — " + currentFlavor() + " berhasil dimuat.",
+            );
+            return;
+          }
+
+          statusText("GoldHEN aktif. Menutup browser PS4...");
+          setTimeout(function () {
+            try { window.close(); } catch (e) {}
+            setTimeout(function () {
+              try {
+                var w = window.open("about:blank", "_self");
+                if (w) w.close();
+              } catch (e) {}
+              try { window.close(); } catch (e) {}
+              setTimeout(function () {
+                try { location.replace("about:blank"); } catch (e) {}
+              }, 600);
+            }, 600);
+          }, 1500);
+        }
+
+        function refresh() {
+          var fw =
+            typeof getPs4FwVersion === "function" ? getPs4FwVersion() : null;
+          var flavor = currentFlavor();
+          var ver =
+            typeof GOLDHEN_DEFAULT !== "undefined" ? GOLDHEN_DEFAULT : "latest";
+          if (fwBox) {
+            fwBox.textContent = fw ?
+              "PS4 " +
+              fw +
+              "  ·  " +
+              flavor +
+              (flavor === "GoldHEN" ? " " + ver : "")
+              : "Firmware tidak terdeteksi — buka halaman ini dari browser PS4";
+          }
+          if (btn && !started) {
+            var label = "JAILBREAK + " + flavor.toUpperCase();
+            if (btn.getAttribute("data-label") !== label) {
+              btn.setAttribute("data-label", label);
+              btn.innerHTML =
+                '<span class="su-go-icon">&#9654;</span><span>' +
+                label +
+                "</span>";
+            }
+          }
+
+          var consoleEl = document.getElementById("console");
+          var text =
+            consoleEl ?
+              consoleEl.textContent.replace(/\s+\n/g, "\n").trim()
+            : "";
+          if (text) {
+            var allLines = text.split("\n");
+            var tail = allLines.slice(-5).join("\n");
+            if (logBox && logBox.textContent !== tail)
+              logBox.textContent = tail;
+
+            // Root / kernel words are NOT completion: the upstream chain logs
+            // "...succeeded...", "JAILBROKEN" and even "===END===" long before
+            // the payload stage. Only a real launch marker counts here,
+            // otherwise the browser would close while GoldHEN is not running.
+            var payloadOkRe =
+              /PAYLOAD-RUNNING|PAYLOAD-ALIVE|Created bin thread|bin returned/i;
+            var payloadBadRe =
+              /PAYLOAD-MAPPED-NOT-LAUNCHED|PAYLOAD-SKIPPED|PAYLOAD-NONE|PAYLOAD-THREW|PAYLOAD-FETCH-FAILED|KPATCH-FETCH-FAILED|KPATCH-BLOB[^\n]*NOT LOADED|Unable to create bin thread|Unable to map memory|no offsets for this firmware|gadget bytes did not match|missing syscall stubs|FAILED -- see log|REBOOT THE CONSOLE|\[-\]/i;
+            var ok = payloadOkRe.test(text) && !payloadBadRe.test(text);
+            var bad = payloadBadRe.test(text);
+
+            if (ok) {
+              scheduleAutoClose();
+              if (refreshTimer) {
+                clearInterval(refreshTimer);
+                refreshTimer = null;
+              }
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = "ULANGI";
+              }
+            } else if (bad) {
+              var reason = "";
+              for (var r = allLines.length - 1; r >= 0 && !reason; r--) {
+                if (payloadBadRe.test(allLines[r]))
+                  reason = allLines[r].trim().slice(0, 100);
+              }
+              statusText(
+                "Payload tidak jalan" +
+                  (reason ? ": " + reason : "") +
+                  ". Baca log di bawah.",
+              );
+              if (refreshTimer) {
+                clearInterval(refreshTimer);
+                refreshTimer = null;
+              }
+              if (btn) btn.disabled = false;
+            } else if (started) {
+              statusText(
+                "Exploit berjalan... jangan tutup halaman / jangan matikan PS4.",
+              );
+            }
+          }
+
+          var stateEl = document.getElementById("state");
+          if (
+            stateEl &&
+            stateEl.textContent &&
+            stateEl.textContent !== "Exploit status" &&
+            !text
+          ) {
+            statusText(stateEl.textContent);
+          }
+        }
+
+        if (window.setInterval) refreshTimer = setInterval(refresh, 500);
+        refresh();
+
+        // If the engine is already resuming a session (userland reload / auto retry),
+        // do not let the user start a second concurrent exploit.
+        try {
+          var resuming =
+            storage.session.getBoolean("jailbreakNow", false) ||
+            storage.session.getBoolean("autoJbRetry", false);
+          if (resuming) {
+            started = true;
+            if (btn) btn.disabled = true;
+            statusText(
+              "Melanjutkan jailbreak otomatis dari sesi sebelumnya...",
+            );
+          }
+        } catch (e) {}
+
+        if (btn) {
+          btn.addEventListener("click", function () {
+            if (typeof user !== "undefined" && user.blockJailbreak && !started)
+              return;
+            started = true;
+            if (typeof user !== "undefined") user.blockJailbreak = true;
+            statusText(
+              "Menjalankan exploit dan menyuntik " + currentFlavor() + "...",
+            );
+            btn.disabled = true;
+            try {
+              if (typeof chooseHEN === "function") chooseHEN();
+            } catch (e) {}
+            try {
+              jailbreak();
+            } catch (e) {
+              statusText("Gagal memulai: " + e.message);
+              btn.disabled = false;
+            }
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>
